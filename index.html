@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EcoWaste AI</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+<style>
+body{margin:0;font-family:Arial;background:linear-gradient(135deg,#eaffef,#b9efc8);color:#173b22}
+header{background:#087a35;color:#fff;text-align:center;padding:40px}
+h1{font-size:48px}.wrap{max-width:900px;margin:auto;padding:20px}
+.card{background:#fff;padding:26px;border-radius:22px;margin:20px 0;box-shadow:0 10px 30px #0001}
+button,label{display:inline-block;background:#159447;color:#fff;padding:13px 20px;border:0;border-radius:10px;font-weight:bold;cursor:pointer;margin:4px}
+input{display:none}.stage{position:relative;display:none;margin-top:20px;overflow:auto;background:#111;border-radius:15px}
+.stage img{display:block;max-width:100%}.box{position:absolute;border:3px solid #22c55e;pointer-events:none}
+.tag{position:absolute;top:-30px;left:-3px;background:#16a34a;color:#fff;padding:5px;border-radius:5px}
+</style>
+</head>
+<body>
+<header><div style="font-size:60px">🌱</div><h1>EcoWaste AI</h1><p>Smart Waste Detector</p></header>
+<div class="wrap">
+<div class="card">
+<h2>📸 Scan Waste</h2>
+<p id="status">Loading AI...</p>
+<label>Choose Image<input id="file" type="file" accept="image/*"></label>
+<button id="detect">Detect</button>
+<div id="stage" class="stage"></div>
+<div id="output"></div>
+</div>
+<div class="card">
+<h2>♻️ Six Classes</h2>
+<p>Plastic • Paper • Metal • Organic • Glass • E-waste</p>
+<p>For a true custom six-class detector, train on bounding-box annotations and place the exported model in the <code>model/</code> folder.</p>
+</div>
+</div>
+<script>
+let model=null,img=null;
+const $=id=>document.getElementById(id);
+(async()=>{
+ try{model=await cocoSsd.load();$("status").textContent="✅ AI ready";}
+ catch(e){$("status").textContent="❌ "+e.message;}
+})();
+$("file").onchange=e=>{
+ const f=e.target.files[0]; if(!f)return;
+ img=new Image();
+ img.onload=()=>{
+   $("stage").innerHTML="";
+   $("stage").appendChild(img);
+   $("stage").style.display="block";
+ };
+ img.src=URL.createObjectURL(f);
+};
+$("detect").onclick=async()=>{
+ if(!img||!model)return;
+ document.querySelectorAll(".box").forEach(x=>x.remove());
+ const predictions=await model.detect(img,20,.25);
+ $("output").innerHTML="<h3>"+predictions.length+" object(s) detected</h3>";
+ predictions.forEach(p=>{
+   const [x,y,w,h]=p.bbox;
+   const box=document.createElement("div");
+   box.className="box";
+   box.style.left=x+"px"; box.style.top=y+"px";
+   box.style.width=w+"px"; box.style.height=h+"px";
+   const tag=document.createElement("div");
+   tag.className="tag";
+   tag.textContent=p.class+" "+(p.score*100).toFixed(0)+"%";
+   box.appendChild(tag);
+   $("stage").appendChild(box);
+ });
+};
+</script>
+</body>
+</html>
